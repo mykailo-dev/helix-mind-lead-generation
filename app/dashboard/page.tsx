@@ -39,7 +39,7 @@ export default function Dashboard() {
         setLeads(data.leads);
         const messages: Record<string, string> = {};
         data.leads.forEach((lead: Lead) => {
-          if (lead.message) {
+          if (lead.message && lead.id) {
             messages[lead.id] = lead.message;
           }
         });
@@ -75,7 +75,7 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           searchQuery,
-          maxResults: 20,
+          maxResults: 5,
         }),
       });
 
@@ -105,7 +105,7 @@ export default function Dashboard() {
     setIsGenerating(true);
     try {
       const selectedLeadIds = Array.from(selectedLeads);
-      const selectedLeadData = leads.filter(lead => selectedLeadIds.includes(lead.id));
+      const selectedLeadData = leads.filter(lead => lead.id && selectedLeads.has(lead.id));
 
       const response = await fetch('/api/generate-message', {
         method: 'PUT',
@@ -124,7 +124,7 @@ export default function Dashboard() {
         fetchStats();
         const newMessages: Record<string, string> = { ...editableMessages };
         result.leads.forEach((lead: Lead) => {
-          if (lead.message) {
+          if (lead.message && lead.id) {
             newMessages[lead.id] = lead.message;
           }
         });
@@ -149,16 +149,16 @@ export default function Dashboard() {
     setIsSending(true);
     try {
       const selectedLeadIds = Array.from(selectedLeads);
-      const selectedLeadData = leads.filter(lead => selectedLeadIds.includes(lead.id));
+      const selectedLeadData = leads.filter(lead => lead.id && selectedLeads.has(lead.id));
 
       const response = await fetch('/api/send-email', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          leads: selectedLeadData.map(lead => ({
-            ...lead,
-            message: editableMessages[lead.id] || lead.message || '',
-          })),
+                     leads: selectedLeadData.map(lead => ({
+             ...lead,
+             message: (lead.id ? editableMessages[lead.id] : undefined) || lead.message || '',
+           })),
           dailyEmailLimit,
         }),
       });
@@ -206,6 +206,10 @@ export default function Dashboard() {
       case 'message_generated': return 'bg-yellow-100 text-yellow-800';
       case 'contacted': return 'bg-purple-100 text-purple-800';
       case 'replied': return 'bg-green-100 text-green-800';
+      case 'converted': return 'bg-emerald-100 text-emerald-800';
+      case 'deleted': return 'bg-red-100 text-red-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      case 'bounced': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -306,7 +310,7 @@ export default function Dashboard() {
             {/* Scraping Tab */}
             {activeTab === 'scraping' && (
               <div>
-                <h2 className="text-xl font-semibold mb-6">Scrape Leads from Google Maps</h2>
+                                 <h2 className="text-xl font-semibold mb-6">Scrape Leads from Google Maps (Apify)</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
@@ -318,19 +322,6 @@ export default function Dashboard() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="e.g., plumbers in austin tx"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Campaign Name
-                    </label>
-                    <input
-                      type="text"
-                      value={campaignName}
-                      onChange={(e) => setCampaignName(e.target.value)}
-                      placeholder="e.g., Austin Plumbers Campaign"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                     />
                   </div>
@@ -446,7 +437,7 @@ export default function Dashboard() {
                                 {lead.website && (
                                   <div className="text-sm text-gray-500">
                                     <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                                      {lead.website}
+                                      {lead.domain}
                                     </a>
                                   </div>
                                 )}
@@ -455,7 +446,7 @@ export default function Dashboard() {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">
                                 {lead.phone && <div>{lead.phone}</div>}
-                                {lead.email && <div className="text-gray-500">{lead.email}</div>}
+                                {lead.emails && lead.emails.length > 0 && <div className="text-gray-500">{lead.emails[0]}</div>}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -574,7 +565,7 @@ export default function Dashboard() {
                                 {lead.website && (
                                   <div className="text-sm text-gray-500">
                                     <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                                      {lead.website}
+                                      {lead.domain}
                                     </a>
                                   </div>
                                 )}
@@ -583,7 +574,7 @@ export default function Dashboard() {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">
                                 {lead.phone && <div>{lead.phone}</div>}
-                                {lead.email && <div className="text-gray-500">{lead.email}</div>}
+                                {lead.emails && lead.emails.length > 0 && <div className="text-gray-500">{lead.emails[0]}</div>}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -644,7 +635,7 @@ export default function Dashboard() {
                               {lead.website && (
                                 <div className="text-sm text-gray-500">
                                   <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                                    {lead.website}
+                                    {lead.domain}
                                   </a>
                                 </div>
                               )}
@@ -653,7 +644,7 @@ export default function Dashboard() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
                               {lead.phone && <div>{lead.phone}</div>}
-                              {lead.email && <div className="text-gray-500">{lead.email}</div>}
+                              {lead.emails && lead.emails.length > 0 && <div className="text-gray-500">{lead.emails[0]}</div>}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -683,4 +674,3 @@ export default function Dashboard() {
     </div>
   );
 } 
-"export default function Dashboard() { return <div>Dashboard</div>; }" 

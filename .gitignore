@@ -111,6 +111,9 @@ temp/
 *.sqlite
 *.sqlite3
 
+# CSV files
+*.csv
+
 # API keys and secrets
 secrets/
 keys/

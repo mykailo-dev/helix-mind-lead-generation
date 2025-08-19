@@ -9,25 +9,28 @@ export async function POST(request: NextRequest) {
     const body: SendEmailRequest = await request.json();
     const { lead, message, subject = 'Quick question about your business' } = body;
 
-    if (!lead || !lead.email || !message) {
+    if (!lead || !lead.emails || lead.emails.length === 0 || !message) {
       return NextResponse.json(
         { success: false, error: 'Lead email and message are required' },
         { status: 400 }
       );
     }
 
+    // Use the first email from the emails array
+    const email = lead.emails[0];
+
     // Check rate limits
-    const rateLimitCheck = await checkRateLimits();
-    if (!rateLimitCheck.allowed) {
+    const rateLimitResult = await checkRateLimits();
+    if (!rateLimitResult.success) {
       return NextResponse.json(
-        { success: false, error: 'Rate limit exceeded', retryAfter: rateLimitCheck.retryAfter },
+        { success: false, error: rateLimitResult.error },
         { status: 429 }
       );
     }
 
     // Send email using Gmail API
     const emailResult = await sendEmailViaGmail({
-      to: lead.email,
+      to: email,
       subject,
       message,
       leadName: lead.name,
@@ -108,7 +111,7 @@ ${message}
 
     return {
       success: true,
-      messageId: res.data.id,
+      messageId: res.data.id || undefined,
     };
   } catch (error) {
     console.error('Error sending email via Gmail:', error);
@@ -119,13 +122,13 @@ ${message}
   }
 }
 
-async function checkRateLimits(): Promise<{ allowed: boolean; retryAfter?: number }> {
+async function checkRateLimits(): Promise<{ success: boolean; retryAfter?: number; error?: string }> {
   // Simple rate limiting - in production, use Redis or database
   const dailyLimit = parseInt(process.env.DAILY_EMAIL_LIMIT || '50');
   const hourlyLimit = parseInt(process.env.HOURLY_EMAIL_LIMIT || '10');
 
   // For now, return allowed - implement proper rate limiting in production
-  return { allowed: true };
+  return { success: true };
 }
 
 export async function PUT(request: NextRequest) {
@@ -147,14 +150,14 @@ export async function PUT(request: NextRequest) {
     const results: { [leadId: string]: { success: boolean; messageId?: string; error?: string } } = {};
 
     for (const lead of targetLeads) {
-      if (!lead.email || !lead.message) {
+      if (!lead.emails || lead.emails.length === 0 || !lead.message) {
         results[lead.id!] = { success: false, error: 'Missing email or message' };
         continue;
       }
 
       try {
         const emailResult = await sendEmailViaGmail({
-          to: lead.email,
+          to: lead.emails[0],
           subject,
           message: lead.message,
           leadName: lead.name,

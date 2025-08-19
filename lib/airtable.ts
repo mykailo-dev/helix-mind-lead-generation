@@ -1,5 +1,5 @@
 import Airtable from 'airtable';
-import { Lead, AirtableRecord } from './types';
+import { Lead, LeadInput, AirtableRecord } from './types';
 
 const airtable = new Airtable({
   apiKey: process.env.AIRTABLE_PERSONAL_ACCESS_TOKEN,
@@ -19,7 +19,7 @@ export class AirtableService {
     return AirtableService.instance;
   }
 
-  async createLead(lead: Lead): Promise<string> {
+  async createLead(lead: LeadInput): Promise<string> {
     try {
       const record = await this.leadsTable.create([
         {
@@ -28,15 +28,32 @@ export class AirtableService {
             'Phone': lead.phone || '',
             'Website': lead.website || '',
             'Address': lead.address || '',
-            'Email': lead.email || '',
             'City': lead.city || '',
+            'PostalCode': lead.postalCode || '',
             'State': lead.state || '',
+            'CountryCode': lead.countryCode || '',
+            'CategoryName': lead.categoryName || '',
+            'Neighborhood': lead.neighborhood || '',
+            'Street': lead.street || '',
+            'Latitude': lead.latitude || undefined,
+            'Longitude': lead.longitude || undefined,
+            'TotalScore': lead.totalScore || undefined,
+            'PlaceId': lead.placeId || '',
+            'ReviewsCount': lead.reviewsCount || undefined,
+            'ImagesCount': lead.imagesCount || undefined,
+            'ImageUrl': lead.imageUrl || '',
+            'Domain': lead.domain || '',
+            'Emails': lead.emails ? lead.emails.join(', ') : '',
+            'LinkedIns': lead.linkedIns ? lead.linkedIns.join(', ') : '',
+            'Twitters': lead.twitters ? lead.twitters.join(', ') : '',
+            'Instagrams': lead.instagrams ? lead.instagrams.join(', ') : '',
+            'Facebooks': lead.facebooks ? lead.facebooks.join(', ') : '',
+            'Youtubes': lead.youtubes ? lead.youtubes.join(', ') : '',
+            'Tiktoks': lead.tiktoks ? lead.tiktoks.join(', ') : '',
+            'Pinterests': lead.pinterests ? lead.pinterests.join(', ') : '',
+            'Discords': lead.discords ? lead.discords.join(', ') : '',
             'Status': lead.status,
             'Message': lead.message || '',
-            'Sent At': lead.sentAt ? lead.sentAt.toISOString() : '',
-            'Replied At': lead.repliedAt ? lead.repliedAt.toISOString() : '',
-            'Created At': new Date().toISOString(),
-            'Updated At': new Date().toISOString(),
           },
         },
       ]);
@@ -50,14 +67,10 @@ export class AirtableService {
 
   async updateLead(leadId: string, updates: Partial<Lead>): Promise<void> {
     try {
-      const fields: Record<string, any> = {
-        'Updated At': new Date().toISOString(),
-      };
+      const fields: Record<string, any> = {};
 
       if (updates.status) fields['Status'] = updates.status;
-      if (updates.message) fields['Message'] = updates.message;
-      if (updates.sentAt) fields['Sent At'] = updates.sentAt.toISOString();
-      if (updates.repliedAt) fields['Replied At'] = updates.repliedAt.toISOString();
+      if (typeof updates.message !== 'undefined') fields['Message'] = updates.message;
 
       await this.leadsTable.update([
         {
@@ -74,10 +87,11 @@ export class AirtableService {
   async getLeads(status?: string): Promise<Lead[]> {
     try {
       const filter = status ? `{Status} = '${status}'` : '';
-      const records = await this.leadsTable.select({
-        filterByFormula: filter,
-        sort: [{ field: 'Created At', direction: 'desc' }],
-      }).all();
+      const records = await this.leadsTable
+        .select({
+          filterByFormula: filter,
+        })
+        .all();
 
       return records.map(record => ({
         id: record.id,
@@ -85,15 +99,40 @@ export class AirtableService {
         phone: record.get('Phone') as string,
         website: record.get('Website') as string,
         address: record.get('Address') as string,
-        email: record.get('Email') as string,
         city: record.get('City') as string,
+        postalCode: record.get('PostalCode') as string,
         state: record.get('State') as string,
-        status: record.get('Status') as string,
+        countryCode: record.get('CountryCode') as string,
+        categoryName: record.get('CategoryName') as string,
+        neighborhood: record.get('Neighborhood') as string,
+        street: record.get('Street') as string,
+        latitude: record.get('Latitude') as number,
+        longitude: record.get('Longitude') as number,
+        totalScore: record.get('TotalScore') as number,
+        placeId: record.get('PlaceId') as string,
+        reviewsCount: record.get('ReviewsCount') as number,
+        imagesCount: record.get('ImagesCount') as number,
+        imageUrl: record.get('ImageUrl') as string,
+        domain: record.get('Domain') as string,
+        emails: record.get('Emails') ? (record.get('Emails') as string).split(', ').filter(e => e) : [],
+        linkedIns: record.get('LinkedIns') ? (record.get('LinkedIns') as string).split(', ').filter(e => e) : [],
+        twitters: record.get('Twitters') ? (record.get('Twitters') as string).split(', ').filter(e => e) : [],
+        instagrams: record.get('Instagrams') ? (record.get('Instagrams') as string).split(', ').filter(e => e) : [],
+        facebooks: record.get('Facebooks') ? (record.get('Facebooks') as string).split(', ').filter(e => e) : [],
+        youtubes: record.get('Youtubes') ? (record.get('Youtubes') as string).split(', ').filter(e => e) : [],
+        tiktoks: record.get('Tiktoks') ? (record.get('Tiktoks') as string).split(', ').filter(e => e) : [],
+        pinterests: record.get('Pinterests') ? (record.get('Pinterests') as string).split(', ').filter(e => e) : [],
+        discords: record.get('Discords') ? (record.get('Discords') as string).split(', ').filter(e => e) : [],
+        status: record.get('Status') as Lead['status'],
         message: record.get('Message') as string,
-        sentAt: record.get('Sent At') ? new Date(record.get('Sent At') as string) : undefined,
-        repliedAt: record.get('Replied At') ? new Date(record.get('Replied At') as string) : undefined,
-        createdAt: new Date(record.get('Created At') as string),
-        updatedAt: new Date(record.get('Updated At') as string),
+        sentAt: undefined,
+        repliedAt: undefined,
+        createdAt: (record as any)._rawJson?.createdTime
+          ? new Date((record as any)._rawJson.createdTime)
+          : new Date(),
+        updatedAt: (record as any)._rawJson?.createdTime
+          ? new Date((record as any)._rawJson.createdTime)
+          : new Date(),
       }));
     } catch (error) {
       console.error('Error fetching leads from Airtable:', error);
@@ -111,15 +150,40 @@ export class AirtableService {
         phone: record.get('Phone') as string,
         website: record.get('Website') as string,
         address: record.get('Address') as string,
-        email: record.get('Email') as string,
         city: record.get('City') as string,
+        postalCode: record.get('PostalCode') as string,
         state: record.get('State') as string,
-        status: record.get('Status') as string,
+        countryCode: record.get('CountryCode') as string,
+        categoryName: record.get('CategoryName') as string,
+        neighborhood: record.get('Neighborhood') as string,
+        street: record.get('Street') as string,
+        latitude: record.get('Latitude') as number,
+        longitude: record.get('Longitude') as number,
+        totalScore: record.get('TotalScore') as number,
+        placeId: record.get('PlaceId') as string,
+        reviewsCount: record.get('ReviewsCount') as number,
+        imagesCount: record.get('ImagesCount') as number,
+        imageUrl: record.get('ImageUrl') as string,
+        domain: record.get('Domain') as string,
+        emails: record.get('Emails') ? (record.get('Emails') as string).split(', ').filter(e => e) : [],
+        linkedIns: record.get('LinkedIns') ? (record.get('LinkedIns') as string).split(', ').filter(e => e) : [],
+        twitters: record.get('Twitters') ? (record.get('Twitters') as string).split(', ').filter(e => e) : [],
+        instagrams: record.get('Instagrams') ? (record.get('Instagrams') as string).split(', ').filter(e => e) : [],
+        facebooks: record.get('Facebooks') ? (record.get('Facebooks') as string).split(', ').filter(e => e) : [],
+        youtubes: record.get('Youtubes') ? (record.get('Youtubes') as string).split(', ').filter(e => e) : [],
+        tiktoks: record.get('Tiktoks') ? (record.get('Tiktoks') as string).split(', ').filter(e => e) : [],
+        pinterests: record.get('Pinterests') ? (record.get('Pinterests') as string).split(', ').filter(e => e) : [],
+        discords: record.get('Discords') ? (record.get('Discords') as string).split(', ').filter(e => e) : [],
+        status: record.get('Status') as Lead['status'],
         message: record.get('Message') as string,
-        sentAt: record.get('Sent At') ? new Date(record.get('Sent At') as string) : undefined,
-        repliedAt: record.get('Replied At') ? new Date(record.get('Replied At') as string) : undefined,
-        createdAt: new Date(record.get('Created At') as string),
-        updatedAt: new Date(record.get('Updated At') as string),
+        sentAt: undefined,
+        repliedAt: undefined,
+        createdAt: (record as any)._rawJson?.createdTime
+          ? new Date((record as any)._rawJson.createdTime)
+          : new Date(),
+        updatedAt: (record as any)._rawJson.createdTime
+          ? new Date((record as any)._rawJson.createdTime)
+          : new Date(),
       };
     } catch (error) {
       console.error('Error fetching lead from Airtable:', error);
@@ -133,10 +197,11 @@ export class AirtableService {
 
   async getRecentLeads(limit: number = 50): Promise<Lead[]> {
     try {
-      const records = await this.leadsTable.select({
-        maxRecords: limit,
-        sort: [{ field: 'Created At', direction: 'desc' }],
-      }).all();
+      const records = await this.leadsTable
+        .select({
+          maxRecords: limit,
+        })
+        .all();
 
       return records.map(record => ({
         id: record.id,
@@ -144,15 +209,40 @@ export class AirtableService {
         phone: record.get('Phone') as string,
         website: record.get('Website') as string,
         address: record.get('Address') as string,
-        email: record.get('Email') as string,
         city: record.get('City') as string,
+        postalCode: record.get('PostalCode') as string,
         state: record.get('State') as string,
-        status: record.get('Status') as string,
+        countryCode: record.get('CountryCode') as string,
+        categoryName: record.get('CategoryName') as string,
+        neighborhood: record.get('Neighborhood') as string,
+        street: record.get('Street') as string,
+        latitude: record.get('Latitude') as number,
+        longitude: record.get('Longitude') as number,
+        totalScore: record.get('TotalScore') as number,
+        placeId: record.get('PlaceId') as string,
+        reviewsCount: record.get('ReviewsCount') as number,
+        imagesCount: record.get('ImagesCount') as number,
+        imageUrl: record.get('ImageUrl') as string,
+        domain: record.get('Domain') as string,
+        emails: record.get('Emails') ? (record.get('Emails') as string).split(', ').filter(e => e) : [],
+        linkedIns: record.get('LinkedIns') ? (record.get('LinkedIns') as string).split(', ').filter(e => e) : [],
+        twitters: record.get('Twitters') ? (record.get('Twitters') as string).split(', ').filter(e => e) : [],
+        instagrams: record.get('Instagrams') ? (record.get('Instagrams') as string).split(', ').filter(e => e) : [],
+        facebooks: record.get('Facebooks') ? (record.get('Facebooks') as string).split(', ').filter(e => e) : [],
+        youtubes: record.get('Youtubes') ? (record.get('Youtubes') as string).split(', ').filter(e => e) : [],
+        tiktoks: record.get('Tiktoks') ? (record.get('Tiktoks') as string).split(', ').filter(e => e) : [],
+        pinterests: record.get('Pinterests') ? (record.get('Pinterests') as string).split(', ').filter(e => e) : [],
+        discords: record.get('Discords') ? (record.get('Discords') as string).split(', ').filter(e => e) : [],
+        status: record.get('Status') as Lead['status'],
         message: record.get('Message') as string,
-        sentAt: record.get('Sent At') ? new Date(record.get('Sent At') as string) : undefined,
-        repliedAt: record.get('Replied At') ? new Date(record.get('Replied At') as string) : undefined,
-        createdAt: new Date(record.get('Created At') as string),
-        updatedAt: new Date(record.get('Updated At') as string),
+        sentAt: undefined,
+        repliedAt: undefined,
+        createdAt: (record as any)._rawJson?.createdTime
+          ? new Date((record as any)._rawJson.createdTime)
+          : new Date(),
+        updatedAt: (record as any)._rawJson.createdTime
+          ? new Date((record as any)._rawJson.createdTime)
+          : new Date(),
       }));
     } catch (error) {
       console.error('Error fetching recent leads from Airtable:', error);

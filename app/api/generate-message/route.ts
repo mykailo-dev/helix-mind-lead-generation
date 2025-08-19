@@ -58,12 +58,23 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const body: { leadIds: string[]; promptTemplate?: string } = await request.json();
-    const { leadIds, promptTemplate } = body;
+    const body: { leadIds?: string[]; leads?: any[]; promptTemplate?: string } = await request.json();
+    const { leadIds, leads, promptTemplate } = body;
 
-    if (!leadIds || leadIds.length === 0) {
+    // Handle both formats: leadIds array or leads array
+    let targetLeads: any[] = [];
+    
+    if (leads && leads.length > 0) {
+      // Dashboard sends leads array
+      targetLeads = leads;
+    } else if (leadIds && leadIds.length > 0) {
+      // API expects leadIds array
+      const airtableService = AirtableService.getInstance();
+      const allLeads = await airtableService.getLeads();
+      targetLeads = allLeads.filter(lead => lead.id && leadIds.includes(lead.id));
+    } else {
       return NextResponse.json(
-        { success: false, error: 'Lead IDs are required' },
+        { success: false, error: 'Either leadIds or leads array is required' },
         { status: 400 }
       );
     }
@@ -71,10 +82,6 @@ export async function PUT(request: NextRequest) {
     const airtableService = AirtableService.getInstance();
     const aiService = AIService.getInstance();
     const results: { [leadId: string]: string } = {};
-
-    // Get all leads from Airtable
-    const leads = await airtableService.getLeads();
-    const targetLeads = leads.filter(lead => lead.id && leadIds.includes(lead.id));
 
     // Generate messages for all leads
     for (const lead of targetLeads) {
@@ -98,10 +105,20 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    const successfulGenerations = Object.values(results).filter(message => message).length;
+
+    // Return updated leads for dashboard refresh
+    const updatedLeads = targetLeads.map(lead => ({
+      ...lead,
+      message: results[lead.id] || lead.message,
+      status: results[lead.id] ? 'message_generated' : lead.status
+    }));
+
     return NextResponse.json({
       success: true,
-      messages: results,
-      totalGenerated: Object.keys(results).length,
+      results,
+      messagesGenerated: successfulGenerations,
+      leads: updatedLeads
     });
   } catch (error) {
     console.error('Error in bulk generate-message API:', error);

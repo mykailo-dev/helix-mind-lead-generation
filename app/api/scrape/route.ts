@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ScrapeRequest, ScrapeResponse, Lead } from '@/lib/types';
+import { ScrapeRequest, ScrapeResponse, Lead, LeadInput, ApifyGoogleMapsResult } from '@/lib/types';
 import { AirtableService } from '@/lib/airtable';
 
 export async function POST(request: NextRequest) {
@@ -58,40 +58,73 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function scrapeGoogleMaps(query: string, maxResults: number): Promise<Lead[]> {
-  const serpApiKey = process.env.SERP_API_KEY;
+async function scrapeGoogleMaps(query: string, maxResults: number): Promise<LeadInput[]> {
+  const apifyToken = process.env.APIFY_TOKEN;
   
-  if (!serpApiKey) {
-    throw new Error('SERP_API_KEY not configured');
+  if (!apifyToken) {
+    throw new Error('APIFY_TOKEN not configured');
   }
 
   try {
-    // Use SerpAPI to search Google Maps
-    const searchUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(query)}&api_key=${serpApiKey}&type=search`;
+    // Dynamically import Apify client to avoid SSR issues
+    const { ApifyClient } = await import('apify-client');
     
-    const response = await fetch(searchUrl);
-    
-    if (!response.ok) {
-      throw new Error(`SerpAPI request failed: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
+    // Initialize Apify client
+    const client = new ApifyClient({
+      token: apifyToken,
+    });
 
-    if (!data.local_results) {
+    // Run the Google Maps scraper with correct input format
+    const run = await client.actor('lukaskrivka/google-maps-with-contact-details').call({
+      language: "en",
+      maxCrawledPlacesPerSearch: maxResults,
+      searchStringsArray: [query],
+      skipClosedPlaces: false,
+      placeMinimumStars: "",
+      website: "allPlaces",
+      searchMatching: "all"
+    });
+
+    // Wait for the run to complete and get results
+    const { items } = await client.dataset(run.defaultDatasetId).listItems();
+    
+    if (!items || items.length === 0) {
       return [];
     }
 
-    const leads: Lead[] = [];
-    const results = data.local_results.slice(0, maxResults);
+    const leads: LeadInput[] = [];
+    const results = items.slice(0, maxResults).map((item: any) => item as ApifyGoogleMapsResult);
 
     for (const result of results) {
-      const lead: Lead = {
+      const lead: LeadInput = {
         name: result.title || '',
-        address: result.address || '',
         phone: result.phone || '',
         website: result.website || '',
-        city: extractCity(result.address || ''),
-        state: extractState(result.address || ''),
+        address: result.address || '',
+        city: result.city || extractCity(result.address || ''),
+        postalCode: result.postalCode || '',
+        state: result.state || extractState(result.address || ''),
+        countryCode: result.countryCode || '',
+        categoryName: result.categoryName || '',
+        neighborhood: result.neighborhood || '',
+        street: result.street || '',
+        latitude: result.location?.lat || undefined,
+        longitude: result.location?.lng || undefined,
+        totalScore: result.totalScore || undefined,
+        placeId: result.placeId || '',
+        reviewsCount: result.reviewsCount || undefined,
+        imagesCount: result.imagesCount || undefined,
+        imageUrl: result.imageUrl || '',
+        domain: result.domain || '',
+        emails: result.emails || [],
+        linkedIns: result.linkedIns || [],
+        twitters: result.twitters || [],
+        instagrams: result.instagrams || [],
+        facebooks: result.facebooks || [],
+        youtubes: result.youtubes || [],
+        tiktoks: result.tiktoks || [],
+        pinterests: result.pinterests || [],
+        discords: result.discords || [],
         status: 'sourced',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -105,7 +138,7 @@ async function scrapeGoogleMaps(query: string, maxResults: number): Promise<Lead
 
     return leads;
   } catch (error) {
-    console.error('Error scraping Google Maps:', error);
+    console.error('Error scraping Google Maps with Apify:', error);
     throw new Error('Failed to scrape Google Maps');
   }
 }

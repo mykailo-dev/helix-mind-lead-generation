@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AirtableService } from '@/lib/airtable';
-import { Lead } from '@/lib/types';
+import { Lead, LeadInput } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,12 +33,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: Partial<Lead> = await request.json();
-    const { name, email, phone, website, address, city, state } = body;
+    const body: Partial<LeadInput> = await request.json();
+    const { name, phone, website, address, city, state } = body;
 
     if (!name) {
       return NextResponse.json(
-        { success: false, error: 'Lead name is required' },
+        { success: false, error: 'Name is required' },
         { status: 400 }
       );
     }
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
     const airtableService = AirtableService.getInstance();
     const leadId = await airtableService.createLead({
       name,
-      email,
       phone,
       website,
       address,
@@ -55,7 +54,7 @@ export async function POST(request: NextRequest) {
       status: 'sourced',
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    } as LeadInput);
 
     return NextResponse.json({
       success: true,

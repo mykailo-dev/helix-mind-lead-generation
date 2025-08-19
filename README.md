@@ -4,7 +4,7 @@ A complete Next.js application that automates lead generation, AI-powered person
 
 ## 🚀 Features
 
-- **Automated Lead Sourcing**: Scrape leads from Google Maps using SerpAPI
+- **Automated Lead Sourcing**: Scrape leads from Google Maps using Apify
 - **AI Personalization**: Generate personalized outreach messages using Azure OpenAI
 - **Email Automation**: Send emails via Gmail API with rate limiting
 - **CRM Integration**: Track all leads and responses in Airtable
@@ -17,7 +17,7 @@ A complete Next.js application that automates lead generation, AI-powered person
 - **AI**: Azure OpenAI Service (GPT-3.5/4)
 - **Email**: Gmail API with OAuth2
 - **Database**: Airtable for CRM
-- **Scraping**: SerpAPI for Google Maps data
+- **Scraping**: Apify for Google Maps data
 - **Icons**: Lucide React
 
 ## 📋 Prerequisites
@@ -27,7 +27,7 @@ Before setting up this project, you'll need:
 1. **Azure OpenAI Service** - For AI message generation
 2. **Gmail API** - For sending emails
 3. **Airtable Account** - For CRM functionality
-4. **SerpAPI Account** - For Google Maps scraping
+4. **Apify Account** - For Google Maps scraping
 5. **Node.js 18+** - For running the application
 
 ## 🚀 Quick Start
@@ -52,7 +52,7 @@ Edit `.env.local` with your actual API keys:
 
 ```env
 # API Keys
-SERP_API_KEY=your_serp_api_key
+APIFY_TOKEN=your_apify_token
 AZURE_OPENAI_KEY=your_azure_key
 AZURE_OPENAI_DEPLOYMENT=leadgen-gpt35
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
@@ -73,68 +73,92 @@ DAILY_EMAIL_LIMIT=50
 HOURLY_EMAIL_LIMIT=10
 ```
 
-### 3. Airtable Setup
+### 3. Apify Setup
 
-Create an Airtable base with a "Leads" table containing these fields:
+1. Go to [Apify](https://apify.com/) and create an account
+2. Navigate to your account settings
+3. Go to "Integrations" → "API tokens"
+4. Create a new API token
+5. Copy the token and add it to your `.env.local` file
 
-- **Name** (Single line text)
-- **Phone** (Single line text)
-- **Website** (URL)
-- **Address** (Single line text)
-- **Email** (Email)
-- **City** (Single line text)
-- **State** (Single line text)
-- **Status** (Single select: sourced, message_generated, contacted, replied, converted)
-- **Message** (Long text)
-- **Sent At** (Date)
-- **Replied At** (Date)
-- **Created At** (Date)
-- **Updated At** (Date)
+### 4. Airtable Setup
 
-### 4. Gmail API Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable Gmail API
-4. Create OAuth 2.0 credentials
-5. Download the credentials and extract Client ID and Client Secret
-6. Use [OAuth Playground](https://developers.google.com/oauthplayground/) to get refresh token
-
-### 5. Airtable Setup
-
-1. Go to [Airtable](https://airtable.com/) and create an account
-2. Create a new base or use an existing one
-3. Create a "Leads" table with the following fields:
-   - **Name** (Single line text)
+1. **Create a new base** in your Airtable account
+2. **Create a table called "Leads"** with the following fields:
+   - **Name** (Single line text) - Required
    - **Phone** (Single line text)
-   - **Website** (URL)
+   - **Website** (Single line text)
    - **Address** (Single line text)
-   - **Email** (Email)
+   - **Email** (Single line text)
    - **City** (Single line text)
    - **State** (Single line text)
-   - **Status** (Single select: sourced, message_generated, contacted, replied, converted)
+   - **Status** (Single select) - Options: `sourced`, `message_generated`, `contacted`, `replied`, `converted`, `deleted`, `failed`, `bounced`
    - **Message** (Long text)
-   - **Sent At** (Date)
-   - **Replied At** (Date)
-   - **Created At** (Date)
-   - **Updated At** (Date)
-4. Get your Personal Access Token:
-   - Go to [Airtable Account](https://airtable.com/account)
-   - Navigate to "Personal access tokens"
-   - Click "Create new token"
-   - Give it a name (e.g., "HelixSwarmAirtableToken")
-   - Select the scopes: "data.records:read" and "data.records:write"
-   - Copy the generated token
-5. Get your Base ID from the Airtable URL: `https://airtable.com/appXXXXXXXXXXXXXX/...`
 
-### 6. Azure OpenAI Setup
+3. **Get your Base ID**:
+   - Open your base in Airtable
+   - Go to Help → API Documentation
+   - Copy the "Base ID" (starts with `app...`)
+
+4. **Get your Personal Access Token**:
+   - Go to your [Airtable account](https://airtable.com/account)
+   - Navigate to "Personal access tokens"
+   - Create a new token with the name "HelixSwarmAirtableToken"
+   - Copy the token (starts with `pat...`)
+
+### 5. Gmail API Setup
+
+1. **Create a Google Cloud Project**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable the Gmail API
+
+2. **Create OAuth 2.0 credentials**:
+   - Go to APIs & Services → Credentials
+   - Create OAuth 2.0 Client ID
+   - Set application type to "Desktop application"
+   - Download the credentials JSON file
+
+3. **Get refresh token**:
+   - Use the [Gmail API OAuth 2.0 Playground](https://developers.google.com/oauthplayground/)
+   - Set OAuth 2.0 configuration
+   - Authorize and get refresh token
+
+### 6. Environment Variables
+
+Create a `.env.local` file in your project root with:
+
+```env
+# API Keys
+APIFY_TOKEN=your_apify_token
+AZURE_OPENAI_KEY=your_azure_key
+AZURE_OPENAI_DEPLOYMENT=leadgen-gpt35
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+
+# Email Configuration
+GMAIL_CLIENT_ID=your_gmail_client_id
+GMAIL_CLIENT_SECRET=your_gmail_client_secret
+GMAIL_REFRESH_TOKEN=your_gmail_refresh_token
+GMAIL_FROM_EMAIL=your-email@gmail.com
+GMAIL_FROM_NAME=Your Name
+
+# Airtable Configuration
+AIRTABLE_PERSONAL_ACCESS_TOKEN=your_airtable_personal_access_token
+AIRTABLE_BASE_ID=your_airtable_base_id
+
+# Rate Limiting
+DAILY_EMAIL_LIMIT=50
+HOURLY_EMAIL_LIMIT=10
+```
+
+### 7. Azure OpenAI Setup
 
 1. Create an Azure OpenAI resource in Azure Portal
 2. Deploy a GPT model (gpt-35-turbo or gpt-4)
 3. Get your API key and endpoint URL
 4. Note your deployment name
 
-### 7. Run the Application
+### 8. Run the Application
 
 ```bash
 npm run dev
