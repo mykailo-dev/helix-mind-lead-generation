@@ -124,7 +124,7 @@ function showFieldValidation() {
 }
 
 function main() {
-  console.log('🚀 Helix Mind - Airtable Table Creator\n');
+  // console.log('🚀 Helix Mind - Airtable Table Creator\n');
   
   // Check environment
   const env = readEnvFile();

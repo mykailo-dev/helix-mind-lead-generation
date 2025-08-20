@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
-console.log('🚀 Starting Helix Mind development server on port 3003...');
+// console.log('🚀 Starting Helix Mind development server on port 3003...');
 console.log('📱 Your app will be available at: http://localhost:3003');
 
 const devProcess = spawn('npx', ['next', 'dev', '-p', '3003'], {

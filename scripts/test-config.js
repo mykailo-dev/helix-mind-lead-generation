@@ -143,7 +143,7 @@ function showTroubleshooting() {
 }
 
 function main() {
-  console.log('🚀 Helix Mind - Configuration Test\n');
+  // console.log('🚀 Helix Mind - Configuration Test\n');
   
   // Check environment
   const env = readEnvFile();
