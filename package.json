@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3005",
+    "dev": "next dev -p 3009",
     "dev:custom": "node scripts/start-dev.js",
     "build": "next build",
-    "start": "next start -p 3003",
+    "start": "next start -p 3009",
     "lint": "next lint",
     "setup-airtable": "node scripts/setup-airtable.js",
     "setup-airtable-simple": "node scripts/setup-airtable-simple.js",
-    "create-airtable-table": "node scripts/create-airtable-table.js"
+    "create-airtable-table": "node scripts/create-airtable-table.js",
+    "test-config": "node scripts/test-config.js",
+    "test-azure-openai": "node scripts/test-azure-openai.js"
   },
   "dependencies": {
     "airtable": "^0.12.2",

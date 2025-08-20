@@ -1,10 +1,34 @@
 import OpenAI from 'openai';
 import { Lead, GenerateMessageRequest, GenerateMessageResponse } from './types';
 
+// Construct the base endpoint URL (without chat/completions)
+const getAzureOpenAIBaseEndpoint = () => {
+  const baseEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'nucleus-gpt-35';
+  
+  // If endpoint already includes deployment path, extract the base
+  if (baseEndpoint && baseEndpoint.includes('/deployments/')) {
+    // Extract everything up to /deployments/{deployment}
+    const match = baseEndpoint.match(/^(.*\/deployments\/[^\/]+)/);
+    if (match) {
+      return match[1];
+    }
+  }
+  
+  // Otherwise, construct the base endpoint
+  if (baseEndpoint) {
+    const cleanBase = baseEndpoint.replace(/\/$/, '');
+    return `${cleanBase}/openai/deployments/${deployment}`;
+  }
+  
+  // Fallback to default construction
+  return `https://openai-nucleus.openai.azure.com/openai/deployments/${deployment}`;
+};
+
 const openai = new OpenAI({
   apiKey: process.env.AZURE_OPENAI_KEY,
-  baseURL: process.env.AZURE_OPENAI_ENDPOINT,
-  defaultQuery: { 'api-version': '2023-12-01-preview' },
+  baseURL: getAzureOpenAIBaseEndpoint(),
+  defaultQuery: { 'api-version': '2024-02-15-preview' },
   defaultHeaders: { 'api-key': process.env.AZURE_OPENAI_KEY },
 });
 
@@ -13,7 +37,8 @@ export class AIService {
   private deploymentName: string;
 
   constructor() {
-    this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-35-turbo';
+    // Use the deployment name from environment, defaulting to the user's working deployment
+    this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT || 'nucleus-gpt-35';
   }
 
   static getInstance(): AIService {
@@ -34,6 +59,13 @@ export class AIService {
       const finalPrompt = promptTemplate || defaultPrompt;
       
       const personalizedPrompt = this.replacePlaceholders(finalPrompt, lead);
+
+      // console.log('🔍 Azure OpenAI Request:', {
+      //   deployment: this.deploymentName,
+      //   baseEndpoint: getAzureOpenAIBaseEndpoint(),
+      //   fullEndpoint: `${getAzureOpenAIBaseEndpoint()}/chat/completions`,
+      //   apiVersion: '2024-02-15-preview'
+      // });
 
       const completion = await openai.chat.completions.create({
         model: this.deploymentName,

@@ -29,7 +29,7 @@ export class AirtableService {
             'Website': lead.website || '',
             'Address': lead.address || '',
             'City': lead.city || '',
-            'PostalCode': lead.postalCode || '',
+            'PostalCode': lead.postalCode ? String(lead.postalCode) : '',
             'State': lead.state || '',
             'CountryCode': lead.countryCode || '',
             'CategoryName': lead.categoryName || '',
