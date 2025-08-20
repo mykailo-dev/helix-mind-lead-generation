@@ -38,6 +38,8 @@ export default function Dashboard() {
   const [emailSubject, setEmailSubject] = useState('Quick question about your business');
   const [currentPage, setCurrentPage] = useState(1);
   const [leadsPerPage] = useState(10);
+  const [editingMessage, setEditingMessage] = useState<{ lead: Lead; message: string } | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const tabs = [
     { id: 'scraping', label: 'Lead Scraping', icon: <Search className="w-5 h-5" />, color: 'from-blue-500 to-cyan-500' },
@@ -155,6 +157,39 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditMessage = async (lead: Lead) => {
+    setEditingMessage({ lead, message: lead.message || '' });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveMessage = async () => {
+    if (!editingMessage) return;
+    
+    try {
+      const response = await fetch('/api/crm', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          leadId: editingMessage.lead.id,
+          updates: { message: editingMessage.message }
+        })
+      });
+      
+      if (response.ok) {
+        await fetchLeads(); // Refresh the leads list
+        setIsEditModalOpen(false);
+        setEditingMessage(null);
+      }
+    } catch (error) {
+      console.error('Error updating message:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditModalOpen(false);
+    setEditingMessage(null);
   };
 
   const toggleLeadSelection = (leadId: string) => {
@@ -676,6 +711,7 @@ export default function Dashboard() {
                               <th className="text-left py-3 px-4 font-medium text-gray-700">Lead</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-700">Contact</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-700">Location</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-700">Message Details</th>
                               <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                             </tr>
                           </thead>
@@ -718,6 +754,30 @@ export default function Dashboard() {
                                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                                     <MapPin className="w-4 h-4" />
                                     <span>{lead.city || 'N/A'}</span>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="max-w-xs">
+                                    {lead.message ? (
+                                      <div className="space-y-2">
+                                        <div className="text-sm text-gray-900 overflow-hidden" style={{ 
+                                          display: '-webkit-box',
+                                          WebkitLineClamp: 3,
+                                          WebkitBoxOrient: 'vertical'
+                                        }}>
+                                          {lead.message}
+                                        </div>
+                                        <button
+                                          onClick={() => handleEditMessage(lead)}
+                                          className="inline-flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                        >
+                                          <Edit3 className="w-3 h-3" />
+                                          <span>Edit Message</span>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 text-sm">No message generated</span>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="py-4 px-4">
@@ -929,6 +989,70 @@ export default function Dashboard() {
           </div>
         </div>
       </footer>
+
+      {/* Edit Message Modal */}
+      {isEditModalOpen && editingMessage && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Edit Message</h3>
+                <button
+                  onClick={handleCancelEdit}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-blue-100 text-sm mt-1">
+                Editing message for: <span className="font-medium">{editingMessage.lead.name}</span>
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Message Content
+                  </label>
+                  <textarea
+                    value={editingMessage.message}
+                    onChange={(e) => setEditingMessage(prev => prev ? { ...prev, message: e.target.value } : null)}
+                    rows={8}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none focus:ring-0 transition-all duration-200 text-gray-900 resize-none"
+                    placeholder="Enter your personalized message here..."
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>This message will be sent to {editingMessage.lead.emails && editingMessage.lead.emails.length > 0 ? editingMessage.lead.emails[0] : 'the lead'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex items-center justify-end space-x-3">
+              <button
+                onClick={handleCancelEdit}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveMessage}
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
