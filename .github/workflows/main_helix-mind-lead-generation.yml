@@ -44,7 +44,7 @@ jobs:
           echo "HOURLY_EMAIL_LIMIT=${{ secrets.HOURLY_EMAIL_LIMIT || '10' }}" >> .env
 
           echo "APIFY_TOKEN=${{ secrets.APIFY_TOKEN }}" >> .env
-          shell: bash
+        shell: bash
         
       - name: npm install, build, and test
         env:
@@ -90,6 +90,7 @@ jobs:
           package: .
 
           
+
 
 
 
