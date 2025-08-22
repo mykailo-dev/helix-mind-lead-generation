@@ -23,7 +23,6 @@ jobs:
         with:
           node-version: '22.x'
 
-
       - name: Create .env file
         run: |
           echo "Azure OPEN AI KEY ${{secrets.AZURE_OPENAI_KEY}}"
@@ -90,6 +89,7 @@ jobs:
           package: .
 
           
+
 
 
 
