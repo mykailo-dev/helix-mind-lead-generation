@@ -26,6 +26,7 @@ jobs:
 
       - name: Create .env file
         run: |
+          echo "Azure OPEN AI KEY ${{secrets.AZURE_OPENAI_KEY}}"
           echo "AZURE_OPENAI_KEY=${{ secrets.AZURE_OPENAI_KEY }}" >> .env
           echo "AZURE_OPENAI_DEPLOYMENT=${{ secrets.AZURE_OPENAI_DEPLOYMENT }}" >> .env
           echo "AZURE_OPENAI_ENDPOINT=${{ secrets.AZURE_OPENAI_ENDPOINT }}" >> .env
@@ -89,6 +90,7 @@ jobs:
           package: .
 
           
+
 
 
 
