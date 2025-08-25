@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  distDir: "build",
   env: {
     // Apify for Google Maps scraping
     APIFY_TOKEN: process.env.APIFY_TOKEN,
